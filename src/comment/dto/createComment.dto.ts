@@ -6,6 +6,7 @@ import {
   IsUrl,
   MinLength,
 } from 'class-validator';
+import { CommentEntity } from "../entity/comment.entity";
 
 export class CreateCommentDto {
   @IsNotEmpty()
@@ -27,8 +28,9 @@ export class CreateCommentDto {
   readonly email: string;
 
   @IsNumber()
-  readonly parentId: number;
+  parentId: number;
 
-  @IsNumber()
-  readonly childId: number;
+  @IsString()
+  @IsNotEmpty()
+  readonly recaptchaResponse: string;
 }

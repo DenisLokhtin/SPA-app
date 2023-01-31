@@ -13,20 +13,20 @@ export class SharpPipe
     if (!file) throw new ConflictException('type not found');
     const extension = typesDictionary[file.mimetype];
 
-    if (file.size <= 1000000) {
-      const filename = uuidv4() + extension;
-      if (extension !== '.txt') {
-        await sharp(file.buffer)
-          .resize(320, 240)
-          .toFile(path.join('files', filename));
-      } else {
+    const filename = uuidv4() + extension;
+    if (extension !== '.txt') {
+      await sharp(file.buffer)
+        .resize(320, 240)
+        .toFile(path.join('files', filename));
+    } else {
+      if (file.size <= 1000000) {
         writeFile('files/' + filename, file.buffer, (err) => {
           if (err) {
             console.error(err);
           }
         });
       }
-      return filename;
     }
+    return filename;
   }
 }
