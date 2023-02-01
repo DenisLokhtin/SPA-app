@@ -32,12 +32,16 @@ export class CommentService {
     const take = 25 + 25 * page;
     const skip = 25 * page;
     const sort = query.sort || 'DESC';
-    const field = query.field || 'created_at';
+    const field = query.field
+      ? { author: { [query.field]: sort } }
+      : { created_at: sort };
+
+    console.log(field, query);
 
     return await this.commentRepository.find({
       where: { parent: false },
       relations: { children: true, author: true },
-      order: { [field]: sort },
+      order: field,
       take: take,
       skip: skip,
     });

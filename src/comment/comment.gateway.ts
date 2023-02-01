@@ -70,7 +70,7 @@ export class commentGateway implements OnModuleInit {
   async getComments(
     @MessageBody() filterCommentDto: FilterCommentDto,
   ): Promise<void> {
-    console.log(this.server);
+    console.log(filterCommentDto);
     try {
       const msg = await this.commentService.getAllComments(filterCommentDto);
       this.server.emit(event_onChangeQuery, {
