@@ -14,14 +14,16 @@ export class CommentService {
 
   async createComment(
     createCommentDto: CreateCommentDto,
-  ): Promise<{ text: string; email: string } & CommentEntity> {
+  ): Promise<{ text: string } & CommentEntity> {
     const comment = await this.commentRepository.create(createCommentDto);
-    const parent = await this.commentRepository.findOne({
-      where: { id: createCommentDto.parentId },
-    });
 
-    if (!createCommentDto.parentId || parent) comment.parent = await parent;
+    if (createCommentDto.parentId) {
+      const parent = await this.commentRepository.findOne({
+        where: { id: createCommentDto.parentId },
+      });
 
+      comment.parent = await parent;
+    }
     return await this.commentRepository.save(comment);
   }
 
@@ -34,7 +36,7 @@ export class CommentService {
 
     return await this.commentRepository.find({
       where: { parent: false },
-      relations: { children: true },
+      relations: { children: true, author: true },
       order: { [field]: sort },
       take: take,
       skip: skip,

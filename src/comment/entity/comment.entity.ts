@@ -5,7 +5,9 @@ import {
   Tree,
   TreeParent,
   TreeChildren,
+  ManyToOne,
 } from 'typeorm';
+import { UserEntity } from '../../user/entity/user.entity';
 
 @Tree('materialized-path')
 @Entity({ name: 'comments' })
@@ -25,11 +27,8 @@ export class CommentEntity {
   @Column({ nullable: true })
   homePage: string;
 
-  @Column()
-  userName: string;
-
-  @Column()
-  email: string;
+  @ManyToOne(() => UserEntity, (user) => user.comments, { onDelete: 'CASCADE' })
+  author: UserEntity;
 
   @Column()
   text: string;

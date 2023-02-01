@@ -1,12 +1,11 @@
 import {
-  IsEmail,
   IsNotEmpty,
   IsNumber,
   IsString,
   IsUrl,
   MinLength,
 } from 'class-validator';
-import { CommentEntity } from "../entity/comment.entity";
+import { UserEntity } from '../../user/entity/user.entity';
 
 export class CreateCommentDto {
   @IsNotEmpty()
@@ -18,19 +17,12 @@ export class CreateCommentDto {
   @IsUrl()
   readonly homePage: string;
 
-  @IsString()
-  @IsNotEmpty()
-  readonly userName: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @IsEmail()
-  readonly email: string;
-
   @IsNumber()
   parentId: number;
 
   @IsString()
   @IsNotEmpty()
   readonly recaptchaResponse: string;
+
+  author: UserEntity;
 }

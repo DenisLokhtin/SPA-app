@@ -3,9 +3,10 @@ import {
   WebSocketGateway,
   MessageBody,
   WebSocketServer,
+  ConnectedSocket,
 } from '@nestjs/websockets';
 import { CreateCommentDto } from './dto/createComment.dto';
-import { Server } from 'socket.io';
+import { Server, Socket } from 'socket.io';
 import { OnModuleInit } from '@nestjs/common';
 import { CommentService } from './comment.service';
 import { UpdateRatingDto } from './dto/updateRating.dto';
@@ -23,18 +24,40 @@ import {
   event_onFirstConnection,
   event_onMessage,
 } from './utils/constants';
+import { JwtPayload, verify } from 'jsonwebtoken';
+import { UserService } from '../user/user.service';
 
 dotenv.config();
 
-@WebSocketGateway(3070, { namespace: 'comments' })
+@WebSocketGateway(3071, { namespace: 'comments' })
 export class commentGateway implements OnModuleInit {
-  constructor(private readonly commentService: CommentService) {}
+  constructor(
+    private readonly commentService: CommentService,
+    private readonly userService: UserService,
+  ) {}
 
   @WebSocketServer()
   server: Server;
+  socketUsers = {};
 
   onModuleInit() {
     this.server.on(event_connection, async (socket) => {
+      let user;
+      if (!socket.handshake.headers.authorization) {
+        user = null;
+        socket.disconnect();
+      }
+
+      const token = socket.handshake.headers.authorization;
+      try {
+        const decode = verify(token, process.env.JWT_SECRET) as JwtPayload;
+        user = await this.userService.findById(decode.id);
+        this.socketUsers[socket.id] = user;
+      } catch (error) {
+        user = null;
+        socket.disconnect();
+      }
+
       const msg = await this.commentService.getAllComments({});
       socket.emit(event_onFirstConnection, {
         ACTION: action_allComments,
@@ -47,6 +70,7 @@ export class commentGateway implements OnModuleInit {
   async getComments(
     @MessageBody() filterCommentDto: FilterCommentDto,
   ): Promise<void> {
+    console.log(this.server);
     try {
       const msg = await this.commentService.getAllComments(filterCommentDto);
       this.server.emit(event_onChangeQuery, {
@@ -64,6 +88,7 @@ export class commentGateway implements OnModuleInit {
 
   @SubscribeMessage('newComment')
   async onNewComment(
+    @ConnectedSocket() socket: Socket,
     @MessageBody()
     createCommentDto: CreateCommentDto,
   ): Promise<void> {
@@ -79,6 +104,7 @@ export class commentGateway implements OnModuleInit {
         });
       }
       if (data.success && validateXHTML(createCommentDto.text)) {
+        createCommentDto.author = this.socketUsers[socket.id];
         const msg = await this.commentService.createComment(createCommentDto);
         this.server.emit(event_onMessage, {
           ACTION: action_newComment,
