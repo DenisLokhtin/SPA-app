@@ -17,7 +17,7 @@ export class CommentController {
   @Post('upload/:id')
   @UseInterceptors(FileInterceptor('file', fileStorage.saveFileToStorage))
   async uploadFile(
-    @UploadedFile(SharpPipe) file,
+    @UploadedFile(SharpPipe) file: string,
     @Param('id') commentId: number,
   ) {
     return await this.commentService.uploadFile(file, commentId);

@@ -3,16 +3,26 @@ import {
   WebSocketGateway,
   MessageBody,
   WebSocketServer,
-  ConnectedSocket,
 } from '@nestjs/websockets';
 import { CreateCommentDto } from './dto/createComment.dto';
-import { Server, Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import { OnModuleInit } from '@nestjs/common';
 import { CommentService } from './comment.service';
 import { UpdateRatingDto } from './dto/updateRating.dto';
 import validateXHTML from './utils/validateText';
 import axios from 'axios';
 import * as dotenv from 'dotenv';
+import { FilterCommentDto } from './dto/filterComment.dto';
+import {
+  action_allComments,
+  action_changeRating,
+  action_newComment,
+  event_connection,
+  event_onChangeQuery,
+  event_onChangeRating,
+  event_onFirstConnection,
+  event_onMessage,
+} from './utils/constants';
 
 dotenv.config();
 
@@ -24,26 +34,32 @@ export class commentGateway implements OnModuleInit {
   server: Server;
 
   onModuleInit() {
-    this.server.on('connection', (socket) => {
-      this.commentService.getAllComments({}).then((comments) => {
-        socket.emit('onFirstConnection', {
-          msg: 'allComments',
-          comments: comments,
-        });
+    this.server.on(event_connection, async (socket) => {
+      const msg = await this.commentService.getAllComments({});
+      socket.emit(event_onFirstConnection, {
+        ACTION: action_allComments,
+        BODY: msg,
       });
     });
   }
 
   @SubscribeMessage('getComments')
-  async getComments(@ConnectedSocket() socket: Socket): Promise<void> {
-    this.commentService
-      .getAllComments(socket.handshake.query)
-      .then((comments) => {
-        this.server.emit('onChangeQuery', {
-          msg: 'allComments',
-          comments: comments,
-        });
+  async getComments(
+    @MessageBody() filterCommentDto: FilterCommentDto,
+  ): Promise<void> {
+    try {
+      const msg = await this.commentService.getAllComments(filterCommentDto);
+      this.server.emit(event_onChangeQuery, {
+        ACTION: action_allComments,
+        BODY: msg,
       });
+    } catch (e) {
+      console.log(e);
+      this.server.emit(event_onChangeQuery, {
+        ACTION: action_allComments,
+        BODY: 'Critical server error',
+      });
+    }
   }
 
   @SubscribeMessage('newComment')
@@ -51,21 +67,29 @@ export class commentGateway implements OnModuleInit {
     @MessageBody()
     createCommentDto: CreateCommentDto,
   ): Promise<void> {
-    const secretKey = process.env.RECAPTCHA_SECRET as string;
-    const recaptchaValidationUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${createCommentDto.recaptchaResponse}`;
-    const { data } = await axios.post(recaptchaValidationUrl);
+    try {
+      const secretKey = process.env.RECAPTCHA_SECRET as string;
+      const recaptchaValidationUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${createCommentDto.recaptchaResponse}`;
+      const { data } = await axios.post(recaptchaValidationUrl);
 
-    if (!data.success) {
-      this.server.emit('onMessage', {
-        msg: 'newComment',
-        error: 'captcha not valid',
-      });
-    }
-    if (data.success && validateXHTML(createCommentDto.text)) {
-      const comment = await this.commentService.createComment(createCommentDto);
-      this.server.emit('onMessage', {
-        msg: 'newComment',
-        comment: comment,
+      if (!data.success) {
+        this.server.emit(event_onMessage, {
+          ACTION: action_newComment,
+          BODY: 'captcha not valid',
+        });
+      }
+      if (data.success && validateXHTML(createCommentDto.text)) {
+        const msg = await this.commentService.createComment(createCommentDto);
+        this.server.emit(event_onMessage, {
+          ACTION: action_newComment,
+          BODY: msg,
+        });
+      }
+    } catch (e) {
+      console.log(e);
+      this.server.emit(event_onMessage, {
+        ACTION: action_newComment,
+        BODY: 'Critical server error',
       });
     }
   }
@@ -74,10 +98,18 @@ export class commentGateway implements OnModuleInit {
   async onRatingChange(
     @MessageBody() updateRatingDto: UpdateRatingDto,
   ): Promise<void> {
-    const comment = await this.commentService.changeRating(updateRatingDto);
-    this.server.emit('onChangeRating', {
-      msg: 'changeRating',
-      comment: comment,
-    });
+    try {
+      const msg = await this.commentService.changeRating(updateRatingDto);
+      this.server.emit(event_onChangeRating, {
+        ACTION: action_changeRating,
+        BODY: msg,
+      });
+    } catch (e) {
+      console.log(e);
+      this.server.emit(event_onChangeRating, {
+        ACTION: action_changeRating,
+        BODY: 'Critical server error',
+      });
+    }
   }
 }

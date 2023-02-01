@@ -1,14 +1,9 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { CommentEntity } from './entity/comment.entity';
 import { CreateCommentDto } from './dto/createComment.dto';
 import { UpdateRatingDto } from './dto/updateRating.dto';
-import { create } from 'domain';
 
 @Injectable()
 export class CommentService {
@@ -25,11 +20,9 @@ export class CommentService {
       where: { id: createCommentDto.parentId },
     });
 
-    if (!createCommentDto.parentId || parent) {
-      comment.parent = await parent;
+    if (!createCommentDto.parentId || parent) comment.parent = await parent;
 
-      return await this.commentRepository.save(comment);
-    }
+    return await this.commentRepository.save(comment);
   }
 
   async getAllComments(query): Promise<CommentEntity[]> {
@@ -37,35 +30,18 @@ export class CommentService {
     const take = 25 + 25 * page;
     const skip = 25 * page;
     const sort = query.sort || 'DESC';
-    const field = query.field;
+    const field = query.field || 'created_at';
 
-    if (field === 'userName') {
-      return await this.commentRepository.find({
-        where: { parent: false },
-        relations: { children: true },
-        order: { userName: sort },
-        take: take,
-        skip: skip,
-      });
-    } else if (field === 'email') {
-      return await this.commentRepository.find({
-        where: { parent: false },
-        relations: { children: true },
-        order: { email: sort },
-        take: take,
-        skip: skip,
-      });
-    } else {
-      return await this.commentRepository.find({
-        where: { parent: false },
-        relations: { children: true },
-        order: { created_at: sort },
-        take: take,
-        skip: skip,
-      });
-    }
+    return await this.commentRepository.find({
+      where: { parent: false },
+      relations: { children: true },
+      order: { [field]: sort },
+      take: take,
+      skip: skip,
+    });
   }
 
+  // Существовал вариант с предзагрузкой файла на сервер, к сообщению бы просто прикреплялось id файла.
   async uploadFile(file: string, id: number): Promise<string> {
     const comment = await this.commentRepository.findOne({ where: { id: id } });
 
@@ -84,6 +60,8 @@ export class CommentService {
     const comment = await this.commentRepository.findOne({ where: { id: id } });
 
     if (!comment) return 'comment not found';
+
+    // если comment.rating правдивый – то рейтинг повышается, если ложный – то понижается.
 
     await this.commentRepository.update(
       { id: id },

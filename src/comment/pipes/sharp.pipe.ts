@@ -14,19 +14,20 @@ export class SharpPipe
     const extension = typesDictionary[file.mimetype];
 
     const filename = uuidv4() + extension;
-    if (extension !== '.txt') {
-      await sharp(file.buffer)
-        .resize(320, 240)
-        .toFile(path.join('files', filename));
-    } else {
-      if (file.size <= 1000000) {
+    if (file.size <= 1000000) {
+      if (extension !== '.txt') {
+        await sharp(file.buffer)
+          .resize(320, 240)
+          .toFile(path.join('files', filename));
+      } else {
         writeFile('files/' + filename, file.buffer, (err) => {
           if (err) {
             console.error(err);
           }
         });
       }
+      return filename;
     }
-    return filename;
+    throw new ConflictException('file not valid');
   }
 }
