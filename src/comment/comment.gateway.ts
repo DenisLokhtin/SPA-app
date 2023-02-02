@@ -42,27 +42,38 @@ export class commentGateway implements OnModuleInit {
 
   onModuleInit() {
     this.server.on(event_connection, async (socket) => {
-      let user;
-      if (!socket.handshake.headers.authorization) {
-        user = null;
-        socket.disconnect();
-      }
-
-      const token = socket.handshake.headers.authorization;
       try {
-        const decode = verify(token, process.env.JWT_SECRET) as JwtPayload;
-        user = await this.userService.findById(decode.id);
-        this.socketUsers[socket.id] = user;
-      } catch (error) {
-        user = null;
-        socket.disconnect();
-      }
+        let user;
+        if (!socket.handshake.headers.authorization) {
+          user = null;
+          socket.disconnect();
+        }
 
-      const msg = await this.commentService.getAllComments({});
-      socket.emit(event_onFirstConnection, {
-        ACTION: action_allComments,
-        BODY: msg,
-      });
+        const token = socket.handshake.headers.authorization;
+        try {
+          const decode = verify(token, process.env.JWT_SECRET) as JwtPayload;
+          user = await this.userService.findById(decode.id);
+          this.socketUsers[socket.id] = user;
+        } catch (error) {
+          user = null;
+          socket.disconnect();
+        }
+
+        const msg = await this.commentService.getAllComments({});
+        socket.emit(event_onFirstConnection, {
+          ACTION: action_allComments,
+          BODY: msg,
+        });
+      } catch (e) {
+        this.server.emit(event_onFirstConnection, {
+          ACTION: action_allComments,
+          BODY: {
+            error: 500,
+            text: 'Critical server error',
+            errorMessage: e.message,
+          },
+        });
+      }
     });
   }
 
@@ -80,7 +91,11 @@ export class commentGateway implements OnModuleInit {
       console.log(e);
       this.server.emit(event_onChangeQuery, {
         ACTION: action_allComments,
-        BODY: 'Critical server error',
+        BODY: {
+          error: 500,
+          text: 'Critical server error',
+          errorMessage: e.message,
+        },
       });
     }
   }
@@ -99,7 +114,7 @@ export class commentGateway implements OnModuleInit {
       if (!data.success) {
         this.server.emit(event_onMessage, {
           ACTION: action_newComment,
-          BODY: 'captcha not valid',
+          BODY: { error: 498, text: 'captcha not valid' },
         });
       }
       if (data.success && validateXHTML(createCommentDto.text)) {
@@ -114,7 +129,11 @@ export class commentGateway implements OnModuleInit {
       console.log(e);
       this.server.emit(event_onMessage, {
         ACTION: action_newComment,
-        BODY: 'Critical server error',
+        BODY: {
+          error: 500,
+          text: 'Critical server error',
+          errorMessage: e.message,
+        },
       });
     }
   }
@@ -135,7 +154,11 @@ export class commentGateway implements OnModuleInit {
     } catch (e) {
       this.server.emit(event_onChangeRating, {
         ACTION: action_changeRating,
-        BODY: 'Critical server error',
+        BODY: {
+          error: 500,
+          text: 'Critical server error',
+          errorMessage: e.message,
+        },
       });
     }
   }

@@ -15,7 +15,7 @@ export class CommentService {
 
   async createComment(
     createCommentDto: CreateCommentDto,
-  ): Promise<{ text: string } & CommentEntity> {
+  ): Promise<CommentEntity> {
     const comment = await this.commentRepository.create(createCommentDto);
 
     if (createCommentDto.parentId) {
@@ -47,12 +47,15 @@ export class CommentService {
   }
 
   // Существовал вариант с предзагрузкой файла на сервер, к сообщению бы просто прикреплялось id файла.
-  async uploadFile(file: string, id: number): Promise<string> {
+  async uploadFile(
+    file: string,
+    id: number,
+  ): Promise<string | { text: string; error: number }> {
     const comment = await this.commentRepository.findOne({ where: { id: id } });
 
-    if (!comment) return 'comment not found';
+    if (!comment) return { error: 404, text: 'comment not found' };
 
-    if (comment.file !== null) return 'file is exist';
+    if (comment.file !== null) return { error: 407, text: 'file not exist' };
 
     await this.commentRepository.update({ id: id }, { file: `/files/${file}` });
     return `/files/${file}`;
@@ -61,14 +64,14 @@ export class CommentService {
   async changeRating(
     updateRatingDto: UpdateCommentRatingDto,
     user: UserEntity,
-  ): Promise<string | CommentEntity> {
+  ): Promise<{ text: string; error: number } | CommentEntity> {
     const id = updateRatingDto.id;
     const comment = await this.commentRepository.findOne({
       where: { id: id },
       relations: { ratingDown: true, ratingUp: true },
     });
 
-    if (!comment) return 'comment not found';
+    if (!comment) return { error: 404, text: 'comment not found' };
 
     const ratingUpUsers = comment.ratingUp.map((user) => user.id);
     const ratingDownUsers = comment.ratingDown.map((user) => user.id);
@@ -84,7 +87,7 @@ export class CommentService {
         );
         return await this.commentRepository.save(comment);
       }
-      return 'positive rate already exist';
+      return { error: 407, text: 'positive rate already exist' };
     } else {
       if (!ratingDownUsers.includes(user.id)) {
         comment.ratingDown.push(user);
@@ -94,7 +97,7 @@ export class CommentService {
         );
         return await this.commentRepository.save(comment);
       }
-      return 'negative rate already exist';
+      return { error: 407, text: 'negative rate already exist' };
     }
   }
 }
