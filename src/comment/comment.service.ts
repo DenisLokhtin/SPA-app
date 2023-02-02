@@ -3,7 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CommentEntity } from './entity/comment.entity';
 import { CreateCommentDto } from './dto/createComment.dto';
-import { UpdateRatingDto } from './dto/updateRating.dto';
+import { UpdateCommentRatingDto } from './dto/updateCommentRating.dto';
+import { UserEntity } from '../user/entity/user.entity';
 
 @Injectable()
 export class CommentService {
@@ -36,8 +37,6 @@ export class CommentService {
       ? { author: { [query.field]: sort } }
       : { created_at: sort };
 
-    console.log(field, query);
-
     return await this.commentRepository.find({
       where: { parent: false },
       relations: { children: true, author: true },
@@ -60,22 +59,42 @@ export class CommentService {
   }
 
   async changeRating(
-    updateRatingDto: UpdateRatingDto,
+    updateRatingDto: UpdateCommentRatingDto,
+    user: UserEntity,
   ): Promise<string | CommentEntity> {
     const id = updateRatingDto.id;
-    const comment = await this.commentRepository.findOne({ where: { id: id } });
+    const comment = await this.commentRepository.findOne({
+      where: { id: id },
+      relations: { ratingDown: true, ratingUp: true },
+    });
 
     if (!comment) return 'comment not found';
 
+    const ratingUpUsers = comment.ratingUp.map((user) => user.id);
+    const ratingDownUsers = comment.ratingDown.map((user) => user.id);
+
     // если comment.rating правдивый – то рейтинг повышается, если ложный – то понижается.
 
-    await this.commentRepository.update(
-      { id: id },
-      updateRatingDto.rating
-        ? { rating: (comment.rating += 1) }
-        : { rating: (comment.rating -= 1) },
-    );
-
-    return await this.commentRepository.findOne({ where: { id: id } });
+    if (updateRatingDto.rating) {
+      if (!ratingUpUsers.includes(user.id)) {
+        comment.ratingUp.push(user);
+        await this.commentRepository.update(
+          { id: id },
+          { rating: (comment.rating += 1) },
+        );
+        return await this.commentRepository.save(comment);
+      }
+      return 'positive rate already exist';
+    } else {
+      if (!ratingDownUsers.includes(user.id)) {
+        comment.ratingDown.push(user);
+        await this.commentRepository.update(
+          { id: id },
+          { rating: (comment.rating -= 1) },
+        );
+        return await this.commentRepository.save(comment);
+      }
+      return 'negative rate already exist';
+    }
   }
 }

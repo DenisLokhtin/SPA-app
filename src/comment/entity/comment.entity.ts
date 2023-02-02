@@ -6,6 +6,8 @@ import {
   TreeParent,
   TreeChildren,
   ManyToOne,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { UserEntity } from '../../user/entity/user.entity';
 
@@ -38,4 +40,12 @@ export class CommentEntity {
 
   @TreeChildren()
   children: CommentEntity[];
+
+  @ManyToMany(() => UserEntity, { cascade: true, onDelete: 'CASCADE' })
+  @JoinTable()
+  ratingUp: UserEntity[];
+
+  @ManyToMany(() => UserEntity, { cascade: true, onDelete: 'CASCADE' })
+  @JoinTable()
+  ratingDown: UserEntity[];
 }

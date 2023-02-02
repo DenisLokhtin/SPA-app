@@ -1,6 +1,6 @@
 import { IsBoolean, IsNotEmpty, IsNumber } from 'class-validator';
 
-export class UpdateRatingDto {
+export class UpdateCommentRatingDto {
   @IsNumber()
   @IsNotEmpty()
   readonly id: number;

@@ -9,7 +9,7 @@ import { CreateCommentDto } from './dto/createComment.dto';
 import { Server, Socket } from 'socket.io';
 import { OnModuleInit } from '@nestjs/common';
 import { CommentService } from './comment.service';
-import { UpdateRatingDto } from './dto/updateRating.dto';
+import { UpdateCommentRatingDto } from './dto/updateCommentRating.dto';
 import validateXHTML from './utils/validateText';
 import axios from 'axios';
 import * as dotenv from 'dotenv';
@@ -70,7 +70,6 @@ export class commentGateway implements OnModuleInit {
   async getComments(
     @MessageBody() filterCommentDto: FilterCommentDto,
   ): Promise<void> {
-    console.log(filterCommentDto);
     try {
       const msg = await this.commentService.getAllComments(filterCommentDto);
       this.server.emit(event_onChangeQuery, {
@@ -122,16 +121,18 @@ export class commentGateway implements OnModuleInit {
 
   @SubscribeMessage('changeRating')
   async onRatingChange(
-    @MessageBody() updateRatingDto: UpdateRatingDto,
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() updateRatingDto: UpdateCommentRatingDto,
   ): Promise<void> {
     try {
-      const msg = await this.commentService.changeRating(updateRatingDto);
+      const user = this.socketUsers[socket.id];
+      const msg = await this.commentService.changeRating(updateRatingDto, user);
+
       this.server.emit(event_onChangeRating, {
         ACTION: action_changeRating,
         BODY: msg,
       });
     } catch (e) {
-      console.log(e);
       this.server.emit(event_onChangeRating, {
         ACTION: action_changeRating,
         BODY: 'Critical server error',
