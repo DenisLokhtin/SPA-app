@@ -11,11 +11,9 @@ services:
       - "3080:3061"
     depends_on:
       - postgres
-    links:
-      - postgres:postgres
     volumes:
       - /spa_app/files:/app/files
-    command: npm run start:dev
+    command: npm run start:prod
 
   migrations:
     image: kawaiimelnik/spa_app
@@ -25,11 +23,8 @@ services:
       - postgres
     command: npm run migration:run
 
-#    command: bash -c "npm run migration:generate -d ./db/migrations/migration && npm run migration:run"
-
-
   postgres:
-    image: postgres:alpine
+    image: postgres:15-alpine
     restart: on-failure
     env_file:
       .env
@@ -39,6 +34,5 @@ services:
       - '5432'
     volumes:
       - postgres:/var/lib/postgresql/data
-#      - ./init:/docker-entrypoint-initdb.d
 volumes:
   postgres:

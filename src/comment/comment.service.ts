@@ -76,7 +76,7 @@ export class CommentService {
     const ratingUpUsers = comment.ratingUp.map((user) => user.id);
     const ratingDownUsers = comment.ratingDown.map((user) => user.id);
 
-    // если comment.rating правдивый – то рейтинг повышается, если ложный – то понижается.
+    // если updateRatingDto.rating правдивый – то рейтинг повышается, если ложный – то понижается.
 
     if (updateRatingDto.rating) {
       if (!ratingUpUsers.includes(user.id)) {

@@ -11,7 +11,7 @@ export const dataSourceOptions: DataSourceOptions = {
   password: process.env.POSTGRES_PASSWORD as string,
   database: process.env.POSTGRES_DB as string,
   entities: [__dirname + '/../**/*.entity.js'] as string[],
-  synchronize: !!process.env.SYNCHRONIZE as boolean,
+  synchronize: false,
   migrations: ['dist/db/migrations/*-migration.js'] as string[],
 };
 const dataSource = new DataSource(dataSourceOptions);

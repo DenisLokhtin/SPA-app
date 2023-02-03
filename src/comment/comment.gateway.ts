@@ -107,9 +107,11 @@ export class commentGateway implements OnModuleInit {
     createCommentDto: CreateCommentDto,
   ): Promise<void> {
     try {
-      const secretKey = process.env.RECAPTCHA_SECRET as string;
-      const recaptchaValidationUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${createCommentDto.recaptchaResponse}`;
-      const { data } = await axios.post(recaptchaValidationUrl);
+      //для тестирования капча была отключена, для её работы нужен ответ присаланный с фронта приложения от гугла
+
+      // const secretKey = process.env.RECAPTCHA_SECRET as string;
+      // const recaptchaValidationUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${createCommentDto.recaptchaResponse}`;
+      // const { data } = await axios.post(recaptchaValidationUrl);
 
       // if (!data.success) {
       //   this.server.emit(event_onMessage, {
@@ -117,6 +119,7 @@ export class commentGateway implements OnModuleInit {
       //     BODY: { error: 498, text: 'captcha not valid' },
       //   });
       // }
+
       if (validateXHTML(createCommentDto.text)) {
         createCommentDto.author = this.socketUsers[socket.id];
         const msg = await this.commentService.createComment(createCommentDto);

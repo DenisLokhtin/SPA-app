@@ -1,6 +1,6 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Response } from 'express';
-import { ExpressRequestInterface } from 'src/types/expressRequest.interface';
+import { ExpressRequestInterface } from '../../types/expressRequest.interface';
 import { JwtPayload, verify } from 'jsonwebtoken';
 import { UserService } from '../user.service';
 
