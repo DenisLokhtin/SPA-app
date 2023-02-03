@@ -29,7 +29,7 @@ import { UserService } from '../user/user.service';
 
 dotenv.config();
 
-@WebSocketGateway(3071, { namespace: 'comments' })
+@WebSocketGateway({ namespace: 'comments' })
 export class commentGateway implements OnModuleInit {
   constructor(
     private readonly commentService: CommentService,
@@ -111,13 +111,13 @@ export class commentGateway implements OnModuleInit {
       const recaptchaValidationUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${createCommentDto.recaptchaResponse}`;
       const { data } = await axios.post(recaptchaValidationUrl);
 
-      if (!data.success) {
-        this.server.emit(event_onMessage, {
-          ACTION: action_newComment,
-          BODY: { error: 498, text: 'captcha not valid' },
-        });
-      }
-      if (data.success && validateXHTML(createCommentDto.text)) {
+      // if (!data.success) {
+      //   this.server.emit(event_onMessage, {
+      //     ACTION: action_newComment,
+      //     BODY: { error: 498, text: 'captcha not valid' },
+      //   });
+      // }
+      if (validateXHTML(createCommentDto.text)) {
         createCommentDto.author = this.socketUsers[socket.id];
         const msg = await this.commentService.createComment(createCommentDto);
         this.server.emit(event_onMessage, {

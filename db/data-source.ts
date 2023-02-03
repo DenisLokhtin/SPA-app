@@ -9,10 +9,10 @@ export const dataSourceOptions: DataSourceOptions = {
   port: +process.env.POSTGRES_PORT as number,
   username: process.env.POSTGRES_USER as string,
   password: process.env.POSTGRES_PASSWORD as string,
-  database: process.env.POSTGRES_DATABASE as string,
+  database: process.env.POSTGRES_DB as string,
   entities: [__dirname + '/../**/*.entity.js'] as string[],
   synchronize: !!process.env.SYNCHRONIZE as boolean,
-  migrations: ['dist/db/migrations/*.js'] as string[],
+  migrations: ['dist/db/migrations/*-migration.js'] as string[],
 };
 const dataSource = new DataSource(dataSourceOptions);
 export default dataSource;

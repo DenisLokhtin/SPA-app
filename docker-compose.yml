@@ -8,19 +8,25 @@ services:
     env_file:
       .env
     ports:
-      - "3061:3080"
-      - "3071:3090"
-    expose:
-      - 3061
-      - 3071
+      - "3080:3061"
     depends_on:
       - postgres
     links:
       - postgres:postgres
     volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
+      - /spa_app/files:/app/files
     command: npm run start:dev
+
+  migrations:
+    image: kawaiimelnik/spa_app
+    env_file:
+      .env
+    depends_on:
+      - postgres
+    command: npm run migration:run
+
+#    command: bash -c "npm run migration:generate -d ./db/migrations/migration && npm run migration:run"
+
 
   postgres:
     image: postgres:alpine
@@ -33,6 +39,6 @@ services:
       - '5432'
     volumes:
       - postgres:/var/lib/postgresql/data
-      - ./init:/docker-entrypoint-initdb.d
+#      - ./init:/docker-entrypoint-initdb.d
 volumes:
   postgres:

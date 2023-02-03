@@ -1,4 +1,4 @@
-create database if not exists spa;
+create database spa;
 
 use spa;
 
