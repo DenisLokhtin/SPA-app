@@ -4,7 +4,7 @@ services:
   api:
     restart: on-failure
     build: .
-    image: kawaiimelnik/spa_app
+    image: kawaiimelnik/spa_app:${TAG}
     env_file:
       .env
     ports:
@@ -16,7 +16,7 @@ services:
     command: npm run start:prod
 
   migrations:
-    image: kawaiimelnik/spa_app
+    image: kawaiimelnik/spa_app:${TAG}
     env_file:
       .env
     depends_on:
@@ -28,10 +28,6 @@ services:
     restart: on-failure
     env_file:
       .env
-    ports:
-      - '5432:5432'
-    expose:
-      - '5432'
     volumes:
       - postgres:/var/lib/postgresql/data
 volumes:

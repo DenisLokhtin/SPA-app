@@ -20,13 +20,10 @@ export class UserEntity {
   userName: string;
 
   @Column()
-  password?: string;
+  password: string;
 
   @OneToMany(() => CommentEntity, (comment) => comment.author)
   comments: CommentEntity[];
-
-  @Column({ nullable: true })
-  access_token: string;
 
   @BeforeInsert()
   async hashPassword() {

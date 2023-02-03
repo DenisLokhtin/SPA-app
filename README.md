@@ -65,7 +65,6 @@ npm run start:prod
     "user": {
         "email": "1@gmail.com",
         "userName": "1",
-        "password": "$2b$10$EjoJkZOfXO9EyhLuyXBEM.KFy2xV.486Hr8BkagP6C.BKFJ4zWFXS",
         "id": 1,
         "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlck5hbWUiOiIxIiwiZW1haWwiOiIxQGdtYWlsLmNvbSIsImlhdCI6MTY3NTQwNDI0N30.gjXiupqo9Ta9Ba7-wYLuHQCcSnZS1fdXLmYhpJRSY3c"
     }
