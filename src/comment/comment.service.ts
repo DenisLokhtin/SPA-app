@@ -15,7 +15,19 @@ export class CommentService {
 
   async createComment(
     createCommentDto: CreateCommentDto,
-  ): Promise<CommentEntity> {
+  ): Promise<CommentEntity | { text: string; error: number }> {
+    if (
+      createCommentDto.text === undefined ||
+      (createCommentDto.text === '' && createCommentDto.text.length < 30)
+    )
+      return { error: 407, text: 'text is empty' };
+
+    if (
+      createCommentDto.parentId !== undefined &&
+      createCommentDto.parentId < 0
+    )
+      return { error: 407, text: 'parentId is empty' };
+
     const comment = await this.commentRepository.create(createCommentDto);
 
     if (createCommentDto.parentId) {
@@ -28,7 +40,27 @@ export class CommentService {
     return await this.commentRepository.save(comment);
   }
 
-  async getAllComments(query): Promise<CommentEntity[]> {
+  async getAllComments(
+    query,
+  ): Promise<CommentEntity[] | { text: string; error: number }> {
+    if (
+      query.sort !== undefined &&
+      query.sort !== 'DESC' &&
+      query.sort !== 'ASC'
+    )
+      return { error: 407, text: 'query sort not correct' };
+
+    if (
+      query.field !== undefined &&
+      query.field !== 'email' &&
+      query.field !== 'userName' &&
+      query.field !== 'created_at'
+    )
+      return { error: 407, text: 'query field not correct' };
+
+    if (query.page !== undefined && query.page < 0)
+      return { error: 407, text: 'query page not correct' };
+
     const page = query.page || 0;
     const take = 25 + 25 * page;
     const skip = 25 * page;
@@ -65,6 +97,14 @@ export class CommentService {
     updateRatingDto: UpdateCommentRatingDto,
     user: UserEntity,
   ): Promise<{ text: string; error: number } | CommentEntity> {
+    if (
+      updateRatingDto === undefined ||
+      updateRatingDto.id === undefined ||
+      isNaN(updateRatingDto.id) ||
+      updateRatingDto.id < 0
+    )
+      return { error: 407, text: 'not correct body' };
+
     const id = updateRatingDto.id;
     const comment = await this.commentRepository.findOne({
       where: { id: id },

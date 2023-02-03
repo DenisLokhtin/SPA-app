@@ -4,7 +4,7 @@ const validateXHTML = (xhtmlText) => {
   if (regex.test(xhtmlText)) {
     return xhtmlText.replace(regex, '').trim() === '';
   } else {
-    return /^[a-zA-Z0-9\s]+$/.test(xhtmlText);
+    return /^[a-zA-Z0-9\s]/.test(xhtmlText);
   }
 };
 
