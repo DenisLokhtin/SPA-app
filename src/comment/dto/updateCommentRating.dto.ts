@@ -1,11 +1,14 @@
-import { IsBoolean, IsNotEmpty, IsNumber } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, Max, Min } from 'class-validator';
 
 export class UpdateCommentRatingDto {
   @IsNumber()
   @IsNotEmpty()
   readonly id: number;
 
-  @IsBoolean()
+  @IsNumber()
   @IsNotEmpty()
-  readonly rating: boolean;
+  @IsEnum([-1, 1])
+  @Min(-1)
+  @Max(1)
+  readonly rating: number;
 }

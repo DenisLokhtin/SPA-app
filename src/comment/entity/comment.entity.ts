@@ -6,10 +6,10 @@ import {
   TreeParent,
   TreeChildren,
   ManyToOne,
-  ManyToMany,
-  JoinTable,
+  OneToMany,
 } from 'typeorm';
 import { UserEntity } from '../../user/entity/user.entity';
+import { RateUsersEntity } from './rateUsers.entity';
 
 @Tree('materialized-path')
 @Entity({ name: 'comments' })
@@ -41,11 +41,6 @@ export class CommentEntity {
   @TreeChildren()
   children: CommentEntity[];
 
-  @ManyToMany(() => UserEntity, { cascade: true, onDelete: 'CASCADE' })
-  @JoinTable()
-  ratingUp: UserEntity[];
-
-  @ManyToMany(() => UserEntity, { cascade: true, onDelete: 'CASCADE' })
-  @JoinTable()
-  ratingDown: UserEntity[];
+  @OneToMany(() => RateUsersEntity, (rateUsers) => rateUsers.comment)
+  rateUsers: RateUsersEntity[];
 }

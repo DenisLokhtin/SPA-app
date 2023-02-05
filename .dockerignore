@@ -5,3 +5,5 @@ README.md
 docker-compose.yml
 .env
 sample.env
+readmeImages
+init.sql

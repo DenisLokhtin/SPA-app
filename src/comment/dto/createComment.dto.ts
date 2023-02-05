@@ -1,6 +1,7 @@
 import {
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   IsUrl,
   MinLength,
@@ -15,14 +16,21 @@ export class CreateCommentDto {
 
   @IsString()
   @IsUrl()
+  @IsOptional()
   readonly homePage: string;
 
   @IsNumber()
+  @IsOptional()
   parentId: number;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
+  // @IsNotEmpty()
   readonly recaptchaResponse: string;
 
+  @IsOptional()
   author: UserEntity;
+
+  @IsOptional()
+  parent: any;
 }

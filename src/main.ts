@@ -4,9 +4,20 @@ import { ConfigService } from '@nestjs/config';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import * as passport from 'passport';
 import * as session from 'express-session';
+import dataSource from '../db/data-source';
 
 async function bootstrap() {
+  await dataSource
+    .initialize()
+    .then(() => {
+      console.log('Data Source has been initialized successfully.');
+    })
+    .catch((err) => {
+      console.error('Error during Data Source initialization:', err);
+    });
+
   const app = await NestFactory.create(AppModule);
+
   app.use(
     session({
       secret: 'sessionSecret',

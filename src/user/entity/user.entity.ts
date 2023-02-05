@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { hash } from 'bcrypt';
 import { CommentEntity } from '../../comment/entity/comment.entity';
+import { RateUsersEntity } from '../../comment/entity/rateUsers.entity';
 
 @Entity({ name: 'users' })
 export class UserEntity {
@@ -24,6 +25,9 @@ export class UserEntity {
 
   @OneToMany(() => CommentEntity, (comment) => comment.author)
   comments: CommentEntity[];
+
+  @OneToMany(() => RateUsersEntity, (rateUsers) => rateUsers.user)
+  rateUsers: RateUsersEntity[];
 
   @BeforeInsert()
   async hashPassword() {

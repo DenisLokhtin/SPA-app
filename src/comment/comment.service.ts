@@ -1,66 +1,41 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CommentEntity } from './entity/comment.entity';
 import { CreateCommentDto } from './dto/createComment.dto';
 import { UpdateCommentRatingDto } from './dto/updateCommentRating.dto';
 import { UserEntity } from '../user/entity/user.entity';
+import { RateUsersEntity } from './entity/rateUsers.entity';
+import dataSource from '../../db/data-source';
 
 @Injectable()
 export class CommentService {
   constructor(
     @InjectRepository(CommentEntity)
     private readonly commentRepository: Repository<CommentEntity>,
+    @InjectRepository(RateUsersEntity)
+    private readonly rateRepository: Repository<RateUsersEntity>,
+    @InjectRepository(UserEntity)
+    private readonly userRepository: Repository<UserEntity>,
   ) {}
 
   async createComment(
     createCommentDto: CreateCommentDto,
   ): Promise<CommentEntity | { text: string; error: number }> {
-    if (
-      createCommentDto.text === undefined ||
-      (createCommentDto.text === '' && createCommentDto.text.length < 30)
-    )
-      return { error: 407, text: 'text is empty' };
-
-    if (
-      createCommentDto.parentId !== undefined &&
-      createCommentDto.parentId < 0
-    )
-      return { error: 407, text: 'parentId is empty' };
-
-    const comment = await this.commentRepository.create(createCommentDto);
-
     if (createCommentDto.parentId) {
-      const parent = await this.commentRepository.findOne({
+      createCommentDto.parent = await this.commentRepository.findOne({
         where: { id: createCommentDto.parentId },
       });
-
-      comment.parent = await parent;
     }
-    return await this.commentRepository.save(comment);
+
+    return await this.commentRepository.save(createCommentDto);
   }
 
-  async getAllComments(
-    query,
-  ): Promise<CommentEntity[] | { text: string; error: number }> {
-    if (
-      query.sort !== undefined &&
-      query.sort !== 'DESC' &&
-      query.sort !== 'ASC'
-    )
-      return { error: 407, text: 'query sort not correct' };
-
-    if (
-      query.field !== undefined &&
-      query.field !== 'email' &&
-      query.field !== 'userName' &&
-      query.field !== 'created_at'
-    )
-      return { error: 407, text: 'query field not correct' };
-
-    if (query.page !== undefined && query.page < 0)
-      return { error: 407, text: 'query page not correct' };
-
+  async getAllComments(query): Promise<CommentEntity[]> {
     const page = query.page || 0;
     const take = 25 + 25 * page;
     const skip = 25 * page;
@@ -79,15 +54,12 @@ export class CommentService {
   }
 
   // Существовал вариант с предзагрузкой файла на сервер, к сообщению бы просто прикреплялось id файла.
-  async uploadFile(
-    file: string,
-    id: number,
-  ): Promise<string | { text: string; error: number }> {
+  async uploadFile(file: string, id: number): Promise<string> {
     const comment = await this.commentRepository.findOne({ where: { id: id } });
 
-    if (!comment) return { error: 404, text: 'comment not found' };
+    if (!comment) throw new NotFoundException('comment not found');
 
-    if (comment.file !== null) return { error: 407, text: 'file not exist' };
+    if (comment.file !== null) throw new BadRequestException('file not send');
 
     await this.commentRepository.update({ id: id }, { file: `/files/${file}` });
     return `/files/${file}`;
@@ -96,48 +68,52 @@ export class CommentService {
   async changeRating(
     updateRatingDto: UpdateCommentRatingDto,
     user: UserEntity,
-  ): Promise<{ text: string; error: number } | CommentEntity> {
-    if (
-      updateRatingDto === undefined ||
-      updateRatingDto.id === undefined ||
-      isNaN(updateRatingDto.id) ||
-      updateRatingDto.id < 0
-    )
-      return { error: 407, text: 'not correct body' };
+  ): Promise<CommentEntity> {
+    const dtoRating = updateRatingDto.rating;
+    const dtoId = updateRatingDto.id;
+    const queryRunner = dataSource.createQueryRunner();
 
-    const id = updateRatingDto.id;
-    const comment = await this.commentRepository.findOne({
-      where: { id: id },
-      relations: { ratingDown: true, ratingUp: true },
-    });
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (!comment) return { error: 404, text: 'comment not found' };
+    try {
+      const comment = await queryRunner.manager.findOne(CommentEntity, {
+        where: { id: dtoId },
+      });
 
-    const ratingUpUsers = comment.ratingUp.map((user) => user.id);
-    const ratingDownUsers = comment.ratingDown.map((user) => user.id);
+      if (!comment) throw new NotFoundException('comment not found');
 
-    // если updateRatingDto.rating правдивый – то рейтинг повышается, если ложный – то понижается.
+      let userRate = await queryRunner.manager.findOne(RateUsersEntity, {
+        where: { user: { id: user.id }, comment: { id: comment.id } },
+      });
 
-    if (updateRatingDto.rating) {
-      if (!ratingUpUsers.includes(user.id)) {
-        comment.ratingUp.push(user);
-        await this.commentRepository.update(
-          { id: id },
-          { rating: (comment.rating += 1) },
-        );
-        return await this.commentRepository.save(comment);
+      if (!userRate) {
+        const newRate = new RateUsersEntity();
+        newRate.comment = comment;
+        newRate.user = user;
+        newRate.rating = dtoRating;
+
+        const rate = await queryRunner.manager.save(newRate);
+
+        comment.rating += dtoRating;
+        userRate = rate;
+      } else if (dtoRating === userRate.rating) {
+        throw new BadRequestException('same rate already exists');
+      } else {
+        userRate.rating = dtoRating;
+        comment.rating += dtoRating;
       }
-      return { error: 407, text: 'positive rate already exist' };
-    } else {
-      if (!ratingDownUsers.includes(user.id)) {
-        comment.ratingDown.push(user);
-        await this.commentRepository.update(
-          { id: id },
-          { rating: (comment.rating -= 1) },
-        );
-        return await this.commentRepository.save(comment);
-      }
-      return { error: 407, text: 'negative rate already exist' };
+
+      await queryRunner.manager.save(userRate);
+      await queryRunner.manager.save(comment);
+      await queryRunner.commitTransaction();
+
+      return comment;
+    } catch (e) {
+      await queryRunner.rollbackTransaction();
+      throw e;
+    } finally {
+      await queryRunner.release();
     }
   }
 }
