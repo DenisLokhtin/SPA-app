@@ -14,7 +14,7 @@
 
 ```bash
 git clone https://github.com/DenisLokhtin/SPA-app.git
-cd ./SPA-app
+cd SPA-app/
 ```
 
 Запуск при помощи Docker`а:
