@@ -22,8 +22,8 @@ cd SPA-app/
 (доступ http://127.0.0.1:3080)
 
 ```bash
-docker-compose build
-docker-compose up
+TAG=dev-2 docker-compose build
+TAG=dev-2 docker-compose up
 ```
 
 Запуск при помощи npm в режиме разработки:
